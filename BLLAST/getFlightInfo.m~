@@ -1,0 +1,21 @@
+%% Initialization
+clear all
+
+matFileName = 'SUMO_BLLAST_DATA.mat';
+load(matFileName)
+
+%% Processing
+nFlights = length(sumo);
+for iFlight = 1: nFlights
+    if strcmp(sumo(iFlight).a_type, 'profile')
+        zMSL = nanmean(sumo(iFlight).GPS_alt_asc - sumo(iFlight).GPS_alt_fixed_asc);
+        meanLat = nanmean(sumo(iFlight).lat_asc);
+        meanLon = nanmean(sumo(iFlight).lon_asc);
+        fprintf('%3.3d: %s  %s - %s, Heigt MSL: %5.1f %5.1f %5.1fm\n', ...
+            iFlight, ...
+            datestr(sumo(iFlight).time(1), 1), ...
+            datestr(sumo(iFlight).time(1), 15), ...
+            datestr(sumo(iFlight).time(end), 15), ...
+            meanLat, meanLon, zMSL)
+    end
+end

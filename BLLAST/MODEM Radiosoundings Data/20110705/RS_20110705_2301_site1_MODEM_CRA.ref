@@ -1,0 +1,23 @@
+Exec date=23/11/2011
+dd/mm/yyyy =05/07/2011
+Sonde TYPE =M2K2DC
+Version logiciel station=V9.0.0.0  
+N° Identification Sonde=105 2 10614
+Latitude=43°07.710' N
+Longitude=0°22.042' E
+Altitude Référence=+0610.0
+Altitude Laché=+0592.0
+AltStation=+0592.0
+Altitude moyenne GPS=0659.0
+Pression Sol=0951.7
+Direction Vent Sol=270
+Force Vent Sol=003.0
+Température Sol=+15.80
+Humidité Sol=063.0
+nuages=/////
+7wwW1W2=////
+Calibration Température=21.9 -0.3
+Calibration Humidité=053.4 -05.3 6404.5
+Observations
+Pump time=30
+Zero courant=0.05

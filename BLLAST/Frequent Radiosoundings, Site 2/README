@@ -1,0 +1,29 @@
+BLLAST : radiosondages fréquents
+================================
+
+Il s'agit des radiosondages simulés avec les corrections initiales du GC :
+
+* rs_AAAAMMJJhhmmss.tsv
+Fichier ascii avec vérification (grossière) de la validité des données, 
+mise en forme explicite de la date et ajout de la vitesse ascensionnelle.
+
+Nom du champ	Unité		Description
+------------	-----		-----------
+Date		iso 8601 	AAAA-MM-JJThh:mm:ssZ
+T 		K 		Temperature
+RH 		% 		Humidity
+v 		m/s 		Wind speed, north component
+u 		m/s 		Wind speed, east component
+Height 		m 		Height
+P 		hPa 		Pressure
+TD 		K 		Dew point
+MR 		g/Kg 		The ratio of the mass of water vapor to the mass of dry air
+DD 		dgr 		Wind direction
+FF 		m/s 		Wind speed
+AZ 		dgr 		Radiosonde azimuth
+El 		dgr 		Radiosonde elevation
+Range 		m 		Radiosonde distance
+Lon 		dgr 		Radiosonde longitude coordinate
+Lat 		dgr 		Radiosonde latitude coordinate
+VV 		m/s 		Vertical speed
+

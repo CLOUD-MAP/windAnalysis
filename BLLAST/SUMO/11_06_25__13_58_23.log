@@ -1,0 +1,311 @@
+<configuration time_of_day="1309010303.24" data_file="11_06_25__13_58_23.data">
+  <conf>
+    <aircraft name="FUNGFI10" ac_id="210" airframe="airframes/mm/fixed-wing/funjetgfi10.xml" radio="radios/mc24r.xml" telemetry="telemetry/default.xml" flight_plan="flight_plans/Lannemezan_site2_survey.xml" settings=" settings/switchlight.xml settings/tuning_ins.xml" gui_color="yellow">
+      <radio DATA_MAX="2200" SYNC_MAX="25000" PULSE_TYPE="POSITIVE" NAME="mc24r" DATA_MIN="800" SYNC_MIN="5000">
+        <channel CTL="C" NEUTRAL="1500" MAX="1900" FUNCTION="ROLL" MIN="1096" AVERAGE="0"/>
+        <channel CTL="B" NEUTRAL="1500" MAX="1096" FUNCTION="PITCH" MIN="1900" AVERAGE="0"/>
+        <channel CTL="D" NEUTRAL="1096" MAX="1900" FUNCTION="THROTTLE" MIN="1096" AVERAGE="0"/>
+        <channel CTL="A" NEUTRAL="1500" MAX="1900" FUNCTION="YAW" MIN="1096" AVERAGE="0"/>
+        <channel CTL="H" NEUTRAL="1500" MAX="2025" FUNCTION="MODE" MIN="966" AVERAGE="1"/>
+        <channel CTL="E" NEUTRAL="1500" MAX="1900" FUNCTION="GAIN1" MIN="1096" AVERAGE="1"/>
+        <channel CTL="F" NEUTRAL="1500" MAX="1900" FUNCTION="CALIB" MIN="1096" AVERAGE="0"/>
+      </radio>
+      <flight_plan NAME="Lannemezan" LON0="0.3610" MAX_DIST_FROM_HOME="1500" GROUND_ALT="660" SECURITY_HEIGHT="60" ALT="760" QFU="120" LAT0="43.0825">
+        <header>#include &quot;subsystems/navigation/nav_line.h&quot;
+#include &quot;datalink.h&quot;</header>
+        <waypoints>
+          <waypoint NAME="HOME" Y="413.3" X="-108.8"/>
+          <waypoint NAME="1" Y="151.4" X="-23.7"/>
+          <waypoint NAME="2" Y="1071.0" X="-667.9"/>
+          <waypoint NAME="R1" Y="267.7" X="-326.3"/>
+          <waypoint NAME="R2" Y="129.5" X="14.1"/>
+          <waypoint NAME="S1" Y="511.5" X="-855.5" ALT="730.0"/>
+          <waypoint NAME="S2" Y="1471.3" X="330.8" ALT="730.0"/>
+          <waypoint NAME="corn_balloon" Y="808.3" X="-213.8"/>
+          <waypoint NAME="CR" Y="199.5" X="-153.8"/>
+          <waypoint NAME="PROFILE" Y="-119.0" X="-414.2"/>
+          <waypoint NAME="START" Y="83.7" X="-482.9" ALT="790.0"/>
+          <waypoint NAME="TD" Y="-57.9" X="-360.0" ALT="715.0"/>
+          <waypoint NAME="AF" Y="102.9" X="-615.3" ALT="710.0"/>
+          <waypoint NAME="_BASELEG" Y="7.3" X="-515.2" ALT="710.0"/>
+          <waypoint NAME="moor_balloon" Y="826.0" X="84.2"/>
+        </waypoints>
+        <blocks>
+          <block NAME="start">
+            <attitude THROTTLE="0.8" ROLL="0" PITCH="20" VMODE="throttle" UNTIL="(estimator_flight_time > 3)"/>
+            <go WP="START"/>
+          </block>
+          <block NAME="wait" STRIP_BUTTON="wait">
+            <circle WP="CR" RADIUS="nav_radius"/>
+          </block>
+          <block NAME="Line 1-2" STRIP_ICON="line.png" STRIP_BUTTON="Line (wp 1-2)">
+            <call FUN="nav_line_init()"/>
+            <call FUN="nav_line(WP_1, WP_2, nav_radius)"/>
+          </block>
+          <block NAME="profile_up" STRIP_ICON="up_profile.png" STRIP_BUTTON="Profile Up">
+            <circle WP="PROFILE" RADIUS="nav_radius"/>
+          </block>
+          <block NAME="profile_down" STRIP_ICON="down_profile.png" STRIP_BUTTON="Profile Down">
+            <circle THROTTLE="0" WP="PROFILE" PITCH="RadOfDeg(-10)" RADIUS="nav_radius" VMODE="throttle" UNTIL="(ground_alt+150 > estimator_z)"/>
+            <deroute BLOCK="wait"/>
+          </block>
+          <block NAME="Oval 1-2 cw" STRIP_ICON="oval.png" STRIP_BUTTON="Oval (wp R1-R2) cw">
+            <oval RADIUS="nav_radius" P2="R1" P1="R2"/>
+          </block>
+          <block NAME="Oval 1-2 ccw" STRIP_ICON="oval.png" STRIP_BUTTON="Oval (wp R1-R2) ccw">
+            <oval RADIUS="-nav_radius" P2="R2" P1="R1"/>
+          </block>
+          <block NAME="Survey S1-S2 NS" STRIP_ICON="survey.png" STRIP_BUTTON="Survey (wp S1-S2) NS">
+            <survey_rectangle WP2="S2" GRID="100" WP1="S1"/>
+          </block>
+          <block NAME="Survey S1-S2 WE" STRIP_ICON="survey_we.png" STRIP_BUTTON="Survey (wp S1-S2) WE">
+            <survey_rectangle ORIENTATION="WE" WP2="S2" GRID="100" WP1="S1"/>
+          </block>
+          <block NAME="Land Right AF-TD" STRIP_ICON="land-right.png" STRIP_BUTTON="Land right (wp AF-TD)">
+            <set VAR="nav_radius" VALUE="DEFAULT_CIRCLE_RADIUS"/>
+            <deroute BLOCK="land"/>
+          </block>
+          <block NAME="Land Left AF-TD" STRIP_ICON="land-left.png" STRIP_BUTTON="Land left (wp AF-TD)">
+            <set VAR="nav_radius" VALUE="-DEFAULT_CIRCLE_RADIUS"/>
+            <deroute BLOCK="land"/>
+          </block>
+          <block NAME="land">
+            <call FUN="nav_compute_baseleg(WP_AF, WP_TD, WP__BASELEG, nav_radius)"/>
+            <circle WP="_BASELEG" RADIUS="nav_radius" UNTIL="NavCircleCount() > 0.5"/>
+            <circle WP="_BASELEG" RADIUS="nav_radius" UNTIL="NavQdrCloseTo(DegOfRad(baseleg_out_qdr)-(nav_radius/fabs(nav_radius))*10) && 20 > fabs(estimator_z - WaypointAlt(WP__BASELEG))"/>
+          </block>
+          <block NAME="final">
+            <exception COND="ground_alt + 10 > estimator_z" DEROUTE="flare"/>
+            <go WP="TD" FROM="AF" HMODE="route" VMODE="glide"/>
+          </block>
+          <block NAME="flare">
+            <go APPROACHING_TIME="0" THROTTLE="0.0" WP="TD" FROM="AF" HMODE="route" VMODE="throttle"/>
+            <attitude THROTTLE="0.0" ROLL="0.0" VMODE="throttle" UNTIL="FALSE"/>
+          </block>
+        </blocks>
+      </flight_plan>
+      <airframe NAME="Funjet GFI 10">
+        <firmware NAME="fixedwing">
+          <define NAME="AGR_CLIMB"/>
+          <define NAME="LOITER_TRIM"/>
+          <define NAME="ALT_KALMAN"/>
+          <define NAME="WIND_INFO"/>
+          <define NAME="WIND_INFO_RET"/>
+          <define NAME="ARDUIMU_I2C_DEV" VALUE="i2c1"/>
+          <target NAME="ap" BOARD="tiny_2.11">
+            <define NAME="USE_I2C0"/>
+            <define NAME="USE_I2C1"/>
+            <define NAME="SENSOR_SYNC_SEND"/>
+          </target>
+          <target NAME="sim" BOARD="pc"/>
+          <subsystem NAME="radio_control" TYPE="ppm"/>
+          <subsystem NAME="telemetry" TYPE="xbee_api"/>
+          <subsystem NAME="control"/>
+          <subsystem NAME="gps" TYPE="ublox_lea5h"/>
+          <subsystem NAME="navigation"/>
+          <subsystem NAME="i2c"/>
+        </firmware>
+        <firmware NAME="setup">
+          <target NAME="tunnel" BOARD="tiny_2.11"/>
+          <target NAME="usb_tunnel_0" BOARD="tiny_2.11"/>
+          <target NAME="usb_tunnel_1" BOARD="tiny_2.11"/>
+          <target NAME="setup_actuators" BOARD="tiny_2.11"/>
+        </firmware>
+        <modules>
+          <load NAME="ins_arduimu.xml"/>
+          <load NAME="baro_scp_i2c.xml"/>
+          <load NAME="airspeed_ets.xml"/>
+          <load NAME="humid_sht.xml"/>
+          <load NAME="temp_temod.xml"/>
+          <load NAME="ir_mlx.xml"/>
+        </modules>
+        <servos>
+          <servo NEUTRAL="1000" MAX="2000" NAME="MOTOR" NO="0" MIN="1000"/>
+          <servo NEUTRAL="1492" MAX="1100" NAME="AILEVON_LEFT" NO="2" MIN="1900"/>
+          <servo NEUTRAL="1508" MAX="1900" NAME="AILEVON_RIGHT" NO="6" MIN="1100"/>
+        </servos>
+        <commands>
+          <axis NAME="THROTTLE" FAILSAFE_VALUE="0"/>
+          <axis NAME="ROLL" FAILSAFE_VALUE="0"/>
+          <axis NAME="PITCH" FAILSAFE_VALUE="0"/>
+        </commands>
+        <rc_commands>
+          <set COMMAND="THROTTLE" VALUE="@THROTTLE"/>
+          <set COMMAND="ROLL" VALUE="@ROLL"/>
+          <set COMMAND="PITCH" VALUE="@PITCH"/>
+        </rc_commands>
+        <section NAME="MIXER">
+          <define NAME="AILEVON_AILERON_RATE" VALUE="0.45"/>
+          <define NAME="AILEVON_ELEVATOR_RATE" VALUE="0.8"/>
+        </section>
+        <command_laws>
+          <let VAR="aileron" VALUE="@ROLL  * AILEVON_AILERON_RATE"/>
+          <let VAR="elevator" VALUE="@PITCH * AILEVON_ELEVATOR_RATE"/>
+          <set VALUE="@THROTTLE" SERVO="MOTOR"/>
+          <set VALUE="$elevator + $aileron" SERVO="AILEVON_LEFT"/>
+          <set VALUE="$elevator - $aileron" SERVO="AILEVON_RIGHT"/>
+        </command_laws>
+        <section NAME="AUTO1" PREFIX="AUTO1_">
+          <define NAME="MAX_ROLL" VALUE="0.85"/>
+          <define NAME="MAX_PITCH" VALUE="0.6"/>
+        </section>
+        <section NAME="adc" PREFIX="ADC_CHANNEL_">
+          <define NAME="IR1" VALUE="ADC_1"/>
+          <define NAME="IR2" VALUE="ADC_2"/>
+          <define NAME="IR_TOP" VALUE="ADC_0"/>
+          <define NAME="IR_NB_SAMPLES" VALUE="16"/>
+        </section>
+        <section NAME="INFRARED" PREFIX="IR_">
+          <define NAME="ADC_IR1_NEUTRAL" VALUE="512"/>
+          <define NAME="ADC_IR2_NEUTRAL" VALUE="512"/>
+          <define NAME="ADC_TOP_NEUTRAL" VALUE="512"/>
+          <define NAME="CORRECTION_UP" VALUE="1."/>
+          <define NAME="CORRECTION_DOWN" VALUE="1."/>
+          <define NAME="CORRECTION_LEFT" VALUE="1."/>
+          <define NAME="CORRECTION_RIGHT" VALUE="1."/>
+          <define NAME="LATERAL_CORRECTION" VALUE="-1"/>
+          <define NAME="LONGITUDINAL_CORRECTION" VALUE="1"/>
+          <define NAME="VERTICAL_CORRECTION" VALUE="1.5"/>
+          <define NAME="HORIZ_SENSOR_TILTED" VALUE="1"/>
+          <define NAME="IR1_SIGN" VALUE="1"/>
+          <define NAME="IR2_SIGN" VALUE="1"/>
+          <define NAME="TOP_SIGN" VALUE="1"/>
+          <define UNIT="deg" NAME="ROLL_NEUTRAL_DEFAULT" VALUE="0"/>
+          <define UNIT="deg" NAME="PITCH_NEUTRAL_DEFAULT" VALUE="0"/>
+        </section>
+        <section NAME="IMU" PREFIX="INS_">
+          <define UNIT="deg" NAME="ROLL_NEUTRAL_DEFAULT" VALUE="0"/>
+          <define UNIT="deg" NAME="PITCH_NEUTRAL_DEFAULT" VALUE="4"/>
+          <define UNIT="deg" NAME="YAW_NEUTRAL_DEFAULT" VALUE="0"/>
+        </section>
+        <section NAME="BAT">
+          <define NAME="ADC_CHANNEL_CURRENT" VALUE="ADC_4"/>
+          <define NAME="MilliAmpereOfAdc(adc)" VALUE="(88*adc)"/>
+          <define UNIT="V" NAME="CATASTROPHIC_BAT_LEVEL" VALUE="9.3"/>
+          <define NAME="VoltageOfAdc(adc)" VALUE="(0.02454*adc)"/>
+        </section>
+        <section NAME="MISC">
+          <define UNIT="m/s" NAME="NOMINAL_AIRSPEED" VALUE="15."/>
+          <define UNIT="s" NAME="CARROT" VALUE="5."/>
+          <define NAME="KILL_MODE_DISTANCE" VALUE="(1.5*MAX_DIST_FROM_HOME)"/>
+          <define UNIT="Hz" NAME="CONTROL_RATE" VALUE="60"/>
+          <define NAME="ALT_KALMAN_ENABLED" VALUE="FALSE"/>
+          <define NAME="TRIGGER_DELAY" VALUE="1."/>
+          <define NAME="DEFAULT_CIRCLE_RADIUS" VALUE="120."/>
+        </section>
+        <section NAME="VERTICAL CONTROL" PREFIX="V_CTL_">
+          <define UNIT="volt" NAME="POWER_CTL_BAT_NOMINAL" VALUE="11.1"/>
+          <define NAME="ALTITUDE_PGAIN" VALUE="-0.07"/>
+          <define NAME="ALTITUDE_MAX_CLIMB" VALUE="2."/>
+          <define NAME="AUTO_THROTTLE_NOMINAL_CRUISE_THROTTLE" VALUE="0.45"/>
+          <define NAME="AUTO_THROTTLE_MIN_CRUISE_THROTTLE" VALUE="0.25"/>
+          <define NAME="AUTO_THROTTLE_MAX_CRUISE_THROTTLE" VALUE="0.85"/>
+          <define NAME="AUTO_THROTTLE_LOITER_TRIM" VALUE="1000"/>
+          <define NAME="AUTO_THROTTLE_DASH_TRIM" VALUE="-1200"/>
+          <define UNIT="%/(m/s)" NAME="AUTO_THROTTLE_CLIMB_THROTTLE_INCREMENT" VALUE="0.2"/>
+          <define NAME="AUTO_THROTTLE_PGAIN" VALUE="-0.01"/>
+          <define NAME="AUTO_THROTTLE_IGAIN" VALUE="0.01"/>
+          <define NAME="AUTO_THROTTLE_PITCH_OF_VZ_PGAIN" VALUE="0.4"/>
+          <define NAME="AUTO_PITCH_PGAIN" VALUE="-0.06"/>
+          <define NAME="AUTO_PITCH_IGAIN" VALUE="0.0"/>
+          <define NAME="AUTO_PITCH_MAX_PITCH" VALUE="0.35"/>
+          <define NAME="AUTO_PITCH_MIN_PITCH" VALUE="-0.35"/>
+          <define NAME="THROTTLE_SLEW" VALUE="0.1"/>
+        </section>
+        <section NAME="HORIZONTAL CONTROL" PREFIX="H_CTL_">
+          <define NAME="COURSE_PGAIN" VALUE="-1.3"/>
+          <define UNIT="radians" NAME="ROLL_MAX_SETPOINT" VALUE="0.99"/>
+          <define UNIT="radians" NAME="PITCH_MAX_SETPOINT" VALUE="0.6"/>
+          <define UNIT="radians" NAME="PITCH_MIN_SETPOINT" VALUE="-0.6"/>
+          <define NAME="ROLL_PGAIN" VALUE="10000."/>
+          <define NAME="AILERON_OF_THROTTLE" VALUE="0.0"/>
+          <define NAME="PITCH_PGAIN" VALUE="-16000."/>
+          <define NAME="PITCH_DGAIN" VALUE="0.4"/>
+          <define NAME="ELEVATOR_OF_ROLL" VALUE="2000"/>
+          <define NAME="ROLL_ATTITUDE_GAIN" VALUE="-7500"/>
+          <define NAME="ROLL_RATE_GAIN" VALUE="-900"/>
+        </section>
+        <section NAME="NAV">
+          <define NAME="NAV_PITCH" VALUE="0."/>
+          <define NAME="NAV_GLIDE_PITCH_TRIM" VALUE="0"/>
+        </section>
+        <section NAME="AGGRESSIVE" PREFIX="AGR_">
+          <define NAME="BLEND_START" VALUE="50"/>
+          <define NAME="BLEND_END" VALUE="15"/>
+          <define NAME="CLIMB_THROTTLE" VALUE="0.9"/>
+          <define NAME="CLIMB_PITCH" VALUE="0.35"/>
+          <define NAME="DESCENT_THROTTLE" VALUE="0.05"/>
+          <define NAME="DESCENT_PITCH" VALUE="-0.35"/>
+          <define NAME="CLIMB_NAV_RATIO" VALUE="0.8"/>
+          <define NAME="DESCENT_NAV_RATIO" VALUE="1.0"/>
+        </section>
+        <section NAME="FAILSAFE" PREFIX="FAILSAFE_">
+          <define UNIT="s" NAME="DELAY_WITHOUT_GPS" VALUE="2"/>
+          <define UNIT="%" NAME="DEFAULT_THROTTLE" VALUE="0.3"/>
+          <define UNIT="rad" NAME="DEFAULT_ROLL" VALUE="0.3"/>
+          <define UNIT="rad" NAME="DEFAULT_PITCH" VALUE="0.5"/>
+          <define UNIT="m" NAME="HOME_RADIUS" VALUE="100"/>
+        </section>
+      </airframe>
+      <telemetry>
+        <process NAME="Ap" CHANNEL="DefaultChannel">
+          <mode NAME="default">
+            <message NAME="AIRSPEED" PERIOD="1"/>
+            <message NAME="ALIVE" PERIOD="5"/>
+            <message NAME="GPS" PERIOD="0.25"/>
+            <message NAME="NAVIGATION" PERIOD="1."/>
+            <message NAME="ATTITUDE" PERIOD="0.25"/>
+            <message NAME="ESTIMATOR" PERIOD="0.5"/>
+            <message NAME="ENERGY" PERIOD="2.5"/>
+            <message NAME="WP_MOVED" PERIOD="0.5"/>
+            <message NAME="CIRCLE" PERIOD="1.05"/>
+            <message NAME="DESIRED" PERIOD="1.05"/>
+            <message NAME="BAT" PERIOD="1.1"/>
+            <message NAME="BARO_MS5534A" PERIOD="1.0"/>
+            <message NAME="SCP_STATUS" PERIOD="1.0"/>
+            <message NAME="SEGMENT" PERIOD="1.2"/>
+            <message NAME="CALIBRATION" PERIOD="2.1"/>
+            <message NAME="NAVIGATION_REF" PERIOD="9."/>
+            <message NAME="PPRZ_MODE" PERIOD="5."/>
+            <message NAME="DOWNLINK" PERIOD="5.1"/>
+            <message NAME="DL_VALUE" PERIOD="1.5"/>
+            <message NAME="IR_SENSORS" PERIOD="1.2"/>
+            <message NAME="GYRO_RATES" PERIOD="1.1"/>
+            <message NAME="SURVEY" PERIOD="2.1"/>
+            <message NAME="GPS_SOL" PERIOD="2.0"/>
+          </mode>
+          <mode NAME="minimal">
+            <message NAME="ALIVE" PERIOD="5"/>
+            <message NAME="ATTITUDE" PERIOD="4"/>
+            <message NAME="GPS" PERIOD="1.05"/>
+            <message NAME="ESTIMATOR" PERIOD="1.3"/>
+            <message NAME="WP_MOVED" PERIOD="1.4"/>
+            <message NAME="CIRCLE" PERIOD="3.05"/>
+            <message NAME="DESIRED" PERIOD="4.05"/>
+            <message NAME="BAT" PERIOD="1.1"/>
+            <message NAME="SEGMENT" PERIOD="3.2"/>
+            <message NAME="CALIBRATION" PERIOD="5.1"/>
+            <message NAME="NAVIGATION_REF" PERIOD="9."/>
+            <message NAME="NAVIGATION" PERIOD="3."/>
+            <message NAME="PPRZ_MODE" PERIOD="5."/>
+            <message NAME="DOWNLINK" PERIOD="5.1"/>
+            <message NAME="DL_VALUE" PERIOD="1.5"/>
+            <message NAME="IR_SENSORS" PERIOD="5.2"/>
+            <message NAME="GYRO_RATES" PERIOD="10.1"/>
+            <message NAME="SURVEY" PERIOD="2.1"/>
+            <message NAME="GPS_SOL" PERIOD="5.0"/>
+          </mode>
+          <mode NAME="extremal">
+            <message NAME="ALIVE" PERIOD="5"/>
+            <message NAME="GPS" PERIOD="5.1"/>
+            <message NAME="ESTIMATOR" PERIOD="5.3"/>
+            <message NAME="BAT" PERIOD="10.1"/>
+            <message NAME="DESIRED" PERIOD="10.2"/>
+            <message NAME="NAVIGATION" PERIOD="5.4"/>
+            <message NAME="PPRZ_MODE" PERIOD="5.5"/>
+            <message NAME="DOWNLINK" PERIOD="5.7"/>
+          </mode>
+        </process>
+        <process NAME="Fbw" CHANNEL="DefaultChannel">
+          <mode NAME="default">
+            <message NA
